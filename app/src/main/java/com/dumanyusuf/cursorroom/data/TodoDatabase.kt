@@ -21,6 +21,7 @@ abstract class TodoDatabase : RoomDatabase() {
                     "todo_database"
                 )
                     .fallbackToDestructiveMigration()
+                    .allowMainThreadQueries() // Geliştirme aşamasında performans için
                     .build()
                 INSTANCE = instance
                 instance

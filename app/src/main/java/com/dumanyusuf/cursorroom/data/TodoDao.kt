@@ -3,6 +3,7 @@ package com.dumanyusuf.cursorroom.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +13,10 @@ interface TodoDao {
     @Query("SELECT * FROM todos ORDER BY createdAt DESC")
     fun getAllTodos(): Flow<List<Todo>>
     
-    @Insert
+    @Query("SELECT * FROM todos WHERE title LIKE '%' || :searchQuery || '%' OR description LIKE '%' || :searchQuery || '%' ORDER BY createdAt DESC")
+    fun searchTodos(searchQuery: String): Flow<List<Todo>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTodo(todo: Todo)
     
     @Update

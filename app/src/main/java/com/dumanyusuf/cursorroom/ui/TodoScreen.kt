@@ -28,6 +28,9 @@ fun TodoScreen(
     onNavigateToDetail: (Todo) -> Unit
 ) {
     val todos by viewModel.allTodos.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isSearchActive by viewModel.isSearchActive.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var selectedPriority by remember { mutableStateOf<Todo.Priority?>(null) }
     
@@ -39,8 +42,28 @@ fun TodoScreen(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    ),
+                    actions = {
+                        IconButton(onClick = { viewModel.setSearchActive(!isSearchActive) }) {
+                            Icon(
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
+                                contentDescription = if (isSearchActive) "Aramayı Kapat" else "Arama Yap"
+                            )
+                        }
+                    }
                 )
+                
+                if (isSearchActive) {
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.setSearchQuery(it) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
                 // Filtreleme çubuğu
                 Row(
                     modifier = Modifier
@@ -109,28 +132,38 @@ fun TodoScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            val filteredTodos = when (selectedPriority) {
-                null -> todos
-                else -> todos.filter { it.priority == selectedPriority }
+            val filteredTodos = if (isSearchActive) {
+                searchResults
+            } else {
+                when (selectedPriority) {
+                    null -> todos
+                    else -> todos.filter { it.priority == selectedPriority }
+                }
             }
             
             if (filteredTodos.isEmpty()) {
                 Text(
                     text = if (selectedPriority != null) 
                         "Bu öncelikte todo bulunamadı" 
+                    else if (isSearchActive) 
+                        "Arama sonuçları bulunamadı" 
                     else 
                         "Henüz todo eklenmemiş",
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp)
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    items(filteredTodos) { todo ->
+                    items(
+                        items = filteredTodos,
+                        key = { it.id }
+                    ) { todo ->
                         TodoItem(
                             todo = todo,
                             onToggleComplete = { viewModel.toggleTodoStatus(todo) },
@@ -364,13 +397,15 @@ fun TodoItem(
                 Row {
                     IconButton(onClick = onToggleComplete) {
                         Icon(
-                            imageVector = if (todo.isCompleted)
-                                Icons.Default.CheckCircle
-                            else
-                                Icons.Default.Close,
+                            painter = if (todo.isCompleted) {
+                                painterResource(id = R.drawable.checked)
+                            } else {
+                                painterResource(id = R.drawable.check)
+                            },
                             contentDescription = "Tamamlandı"
                         )
                     }
+
                     IconButton(onClick = onDelete) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -381,4 +416,24 @@ fun TodoItem(
             }
         }
     }
-} 
+}
+
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier,
+        label = { Text("Arama") },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Arama"
+            )
+        }
+    )
+}

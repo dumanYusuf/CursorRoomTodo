@@ -18,4 +18,8 @@ class TodoRepository(private val todoDao: TodoDao) {
     suspend fun deleteTodo(todo: Todo) {
         todoDao.deleteTodo(todo)
     }
+
+    fun searchTodos(query: String): Flow<List<Todo>> {
+        return todoDao.searchTodos(query)
+    }
 } 
